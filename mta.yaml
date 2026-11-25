@@ -1,0 +1,45 @@
+_schema-version: 3.3.0
+ID: invoice-translation-app
+version: 1.0.0
+description: "Invoice translation and performance comparison"
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: invoice-translation-app-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      instances: 1
+      memory: 512M
+      buildpack: nodejs_buildpack
+    properties:
+      TRANSLATION_API_URL: https://8b5bb71ftrial-dev-translation-service-srv.cfapps.us10-001.hana.ondemand.com/translation/translateOptimized
+    build-parameters:
+      builder: npm-ci
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: invoice-translation-app-db
+
+  - name: invoice-translation-app-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: invoice-translation-app-db
+
+resources:
+  - name: invoice-translation-app-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
